@@ -17,6 +17,7 @@ resource "aws_instance" "example" {
   instance_type = "t2.medium"
   tags = {
     Name = "ExampleInstance"
+    Version = "1.0"
     Environment = "Development"
   }
   lifecycle {
