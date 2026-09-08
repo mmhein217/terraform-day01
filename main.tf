@@ -17,6 +17,12 @@ variable "server_port" {
   
 }
 
+variable "instance_name" {    
+  description = "The name of the EC2 instance"
+  type        = string    
+  
+}
+
 
 resource "aws_instance" "example" {
   ami           = data.aws_ami_ids.exampleami.ids[0]
@@ -37,7 +43,7 @@ resource "aws_instance" "example" {
 
 
   tags = {
-    Name = "ExampleInstance"
+    Name = var.instance_name
     Version = "1.0"
     Environment = "Development"
   }
