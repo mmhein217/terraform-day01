@@ -10,6 +10,17 @@ data "aws_ami_ids" "exampleami" {
   }
 }
 
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
 
 variable "server_port" {
   description = "The port on which the server will listen"
@@ -72,6 +83,45 @@ resource "aws_security_group" "instance" {
   }
 }
 
+
+resource "aws_launch_template" "example" {
+  image_id      = data.aws_ami_ids.exampleami.ids[0]
+  instance_type = "t2.medium"
+  vpc_security_group_ids =  [aws_security_group.instance.id]
+
+  user_data = <<-EOF
+    #!/bin/bash
+    # 1. Create the directory
+    mkdir -p /var/www/html
+    
+    # 2. Write the HTML file
+    echo "<h1>Hello, World!</h1>" > /var/www/html/index.html
+    
+    # 3. Start busybox and point it to the directory using -h
+    nohup busybox httpd -f -p ${var.server_port} -h /var/www/html &
+    EOF
+
+    lifecycle {
+      create_before_destroy = true
+    }
+
+} 
+
+
+resource "aws_autoscaling_group" "example" {
+  min_size = 2
+  max_size = 10
+  vpc_zone_identifier = data.aws_subnets.default.ids
+  launch_template {
+    id    = aws_launch_template.example.id
+    version = aws_launch_template.example.latest_version
+  }
+  tag {
+    key = "Name"
+    value = "Developments"
+    propagate_at_launch = true
+  }
+}
 
 output "public_ip" {
   value = aws_instance.example.public_ip
